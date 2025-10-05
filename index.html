@@ -1,213 +1,492 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Order Quest — From Chaos to Pattern</title>
-  <!--
-    Order Quest — Clean version with NO thermodynamics terms.
-    • Removed all mentions of entropy, ΔH, ΔG, etc.
-    • Fixed a freeze bug caused by storing the entire state (including history) in history snapshots.
-    • Simplified HUD to "Order" and "Progress" only.
-
-    How to deploy (GitHub Pages):
-    1) Save this file as index.html in a public repo.
-    2) Settings → Pages → Deploy from a branch → main → /(root) → Save.
-  -->
+  <title>Autonomic Arcade — Clinician Challenge</title>
+  <meta name="description" content="Interactive game to learn the Autonomic Nervous System (ANS): receptors, transmitters, and organ effects. Built for GitHub Pages as a single HTML file." />
   <style>
     :root{
-      --bg:#0b1020;--panel:#121a33;--panel2:#0f1730;--ink:#e7ecff;--muted:#aeb8d6;--accent:#6ea8ff;--ok:#3fd691;--shadow:0 10px 30px rgba(0,0,0,.35);--r:18px;
+      --bg:#0f172a;         /* slate-900 */
+      --panel:#111827;      /* gray-900 */
+      --muted:#1f2937;      /* gray-800 */
+      --ink:#e5e7eb;        /* gray-200 */
+      --ink-dim:#9ca3af;    /* gray-400 */
+      --pri:#22c55e;        /* green-500 */
+      --pri-2:#16a34a;      /* green-600 */
+      --accent:#38bdf8;     /* sky-400 */
+      --warn:#f59e0b;       /* amber-500 */
+      --bad:#ef4444;        /* red-500 */
+      --good:#10b981;       /* emerald-500 */
+      --card:#0b1022;       /* deep panel */
+      --shadow: 0 10px 30px rgba(0,0,0,0.35);
+      --radius: 18px;
     }
-    *{box-sizing:border-box}
-    html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Helvetica,Arial}
-    a{color:var(--accent)}
-    .wrap{max-width:1100px;margin:0 auto;padding:22px}
-    header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:12px}
-    .brand{display:flex;gap:12px;align-items:center}
-    .logo{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#7aa0ff,#3f66ff);box-shadow:var(--shadow)}
-    h1{margin:0;font-size:1.25rem;font-weight:800}
-    .pill{padding:6px 10px;border-radius:999px;background:#131d3b;color:var(--muted);font-weight:700;font-size:.82rem}
-    .card{background:linear-gradient(180deg,var(--panel),var(--panel2));padding:16px;border-radius:var(--r);box-shadow:var(--shadow);margin:10px 0}
-    .grid{display:grid;gap:14px}
-    @media(min-width:940px){.grid{grid-template-columns:1.2fr .8fr}}
-    .toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
-    button{appearance:none;border:none;padding:10px 14px;border-radius:14px;cursor:pointer;font-weight:800;background:#162455;color:var(--ink);box-shadow:var(--shadow);transition:.18s}
-    button:hover{transform:translateY(-1px)}
-    .primary{background:linear-gradient(135deg,#5a86ff,#3d63ff)}
-    .ghost{background:#0f1a3d}
-    .ok{background:linear-gradient(135deg,#2fd28e,#1caf73)}
-    .warn{background:linear-gradient(135deg,#ffd36e,#ffb347);color:#1b1e28}
-    .bad{background:linear-gradient(135deg,#ff7a7a,#ff5f5f)}
-    .row{display:flex;gap:12px;align-items:center}
-    .note{color:var(--muted)}
-    .meter{height:12px;background:#0b1330;border-radius:999px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
-    .meter>span{display:block;height:100%;background:linear-gradient(90deg,#6ea8ff,#9dd0ff);width:0;transition:width .4s}
-    .meter.ok>span{background:linear-gradient(90deg,#2fd28e,#93f0c8)}
-    .panel{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .box{background:#0e1733;border-radius:16px;padding:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
-    .box h3{margin:0 0 8px;font-size:1rem}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% -10%, #1e293b, #0b1022 60%, #050814);
+      color: var(--ink); display:flex; flex-direction:column; gap:16px;
+    }
+    header{
+      position:sticky; top:0; backdrop-filter: saturate(180%) blur(6px);
+      background: linear-gradient(180deg, rgba(5,8,20,0.85), rgba(5,8,20,0.55));
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      z-index: 10;
+    }
+    .container{max-width:1200px; margin:0 auto; padding:14px 18px;}
+    .brand{display:flex; align-items:center; gap:12px;}
+    .logo{width:44px; height:44px; border-radius:12px; display:grid; place-items:center; background:linear-gradient(135deg,#0ea5e9,#22c55e); box-shadow:var(--shadow)}
+    .logo span{font-weight:800; color:#001018; text-shadow:0 1px 0 rgba(255,255,255,0.5)}
+    h1{font-size: clamp(20px, 2.6vw, 34px); margin:0}
+    .sub{color:var(--ink-dim); font-size:14px}
 
-    .sim{height:230px;background:#0b1330;border-radius:14px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
-    .chip{position:absolute;width:16px;height:16px;border-radius:4px;background:#6ea8ff;box-shadow:0 4px 10px rgba(0,0,0,.35)}
-    .match{position:absolute;width:4px;height:36px;border-radius:3px;background:#ffbb66;box-shadow:0 4px 10px rgba(0,0,0,.35)}
-    .die{position:absolute;width:20px;height:20px;border-radius:6px;background:#f7f7ff;box-shadow:0 4px 10px rgba(0,0,0,.3);display:grid;place-items:center;font-size:.7rem;color:#111}
+    .bar{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px; margin-top:8px}
+    .tabs{display:flex; gap:10px; flex-wrap:wrap}
+    .tab{
+      padding:10px 14px; border-radius:999px; border:1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      cursor:pointer; user-select:none; font-weight:600; letter-spacing:.2px; transition: all .18s ease;
+    }
+    .tab[aria-selected="true"]{background: linear-gradient(180deg, rgba(56,189,248,0.2), rgba(34,197,94,0.2)); border-color: rgba(56,189,248,0.35)}
 
-    .toast{position:fixed;right:16px;bottom:16px;background:#0d1533;border:1px solid rgba(255,255,255,.1);padding:12px 14px;border-radius:12px;box-shadow:var(--shadow);display:none}
-    .show{display:block;animation:pop .5s ease}
-    @keyframes pop{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+    .main{max-width:1200px; margin:0 auto; padding: 0 18px 28px; display:grid; grid-template-columns: 320px 1fr; gap:18px}
+    @media (max-width: 980px){ .main{grid-template-columns: 1fr;} }
+
+    .left, .right{background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015)); border:1px solid rgba(255,255,255,0.06); border-radius: var(--radius); box-shadow: var(--shadow)}
+    .left{padding:14px}
+    .right{padding:0; overflow:hidden}
+
+    .panel-title{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.06)}
+    .panel-title h2{margin:0; font-size:16px; letter-spacing:.3px}
+
+    .score{display:flex; gap:10px; flex-wrap:wrap}
+    .pill{padding:6px 10px; border-radius:999px; background:#0c132a; border:1px solid rgba(255,255,255,0.06); font-size:12px}
+
+    .content{padding:14px}
+
+    .btn{display:inline-flex; align-items:center; gap:8px; border:none; border-radius:12px; padding:12px 14px; font-weight:700; cursor:pointer; user-select:none; transition:.2s; background:linear-gradient(180deg, rgba(34,197,94,0.18), rgba(56,189,248,0.18)); color:var(--ink); border:1px solid rgba(56,189,248,0.25)}
+    .btn:hover{transform:translateY(-1px); filter:saturate(120%)}
+    .btn.secondary{background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)); border-color: rgba(255,255,255,0.08)}
+    .btn.bad{background:linear-gradient(180deg, rgba(239,68,68,0.25), rgba(239,68,68,0.18)); border-color: rgba(239,68,68,0.35)}
+
+    .mode-card{display:grid; gap:8px; border-radius:16px; padding:12px; background:linear-gradient(180deg, rgba(56,189,248,0.07), rgba(56,189,248,0.02)); border:1px dashed rgba(56,189,248,0.25)}
+    .mode-card h3{margin:0; font-size:16px}
+    .mode-card p{margin:0; color:var(--ink-dim); font-size:13px; line-height:1.45}
+
+    .question{padding:18px;}
+    .prompt{font-size: clamp(16px,1.7vw,20px); margin:0 0 14px; line-height:1.35}
+    .organ{display:flex; align-items:center; gap:12px; margin-bottom:14px}
+    .organ .glyph{width:44px; height:44px; border-radius:12px; display:grid; place-items:center; background:linear-gradient(135deg, #172554, #0ea5e9); font-weight:800}
+
+    .options{display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px}
+    .option{padding:12px; border-radius:14px; background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.07); cursor:pointer}
+    .option strong{display:block}
+    .option:hover{border-color: rgba(56,189,248,0.35)}
+
+    .feedback{padding:14px; border-top:1px solid rgba(255,255,255,0.06); display:none}
+    .feedback.show{display:block}
+
+    .grid-two{display:grid; grid-template-columns: 1fr 1fr; gap:12px}
+    @media (max-width:840px){.grid-two{grid-template-columns:1fr}}
+
+    .about{padding:14px; font-size:13px; color: var(--ink-dim)}
+    details{border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:10px 12px; background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))}
+    summary{cursor:pointer; font-weight:700; color:var(--ink)}
+    a{color:#7dd3fc; text-decoration: none}
+    a:hover{text-decoration:underline}
+    .kbd{padding:2px 6px; border-radius:6px; border:1px solid rgba(255,255,255,0.2); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px}
+
+    .footer{color:var(--ink-dim); text-align:center; padding:14px 0 28px}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
+  <header>
+    <div class="container">
       <div class="brand">
-        <div class="logo"></div>
+        <div class="logo" aria-hidden="true"><span>ANS</span></div>
         <div>
-          <h1>Order Quest — From Chaos to Pattern</h1>
-          <div class="note">Create ordered patterns across five analogies. No physics jargon — just clear goals and crisp visuals.</div>
+          <h1>Autonomic Arcade — Clinician Challenge</h1>
+          <div class="sub">Master sympathetic vs. parasympathetic actions, receptor pharmacology, and organ effects — through fast clinical scenarios.</div>
         </div>
       </div>
-      <div class="row">
-        <span class="pill" id="progressPill">Progress: 0/5</span>
-        <button class="ghost" id="resetBtn">Reset</button>
-        <button class="primary" id="helpBtn">How to Play</button>
-      </div>
-    </header>
-
-    <div class="grid">
-      <div class="card">
-        <div class="toolbar">
-          <button class="primary" id="actionA">Drive</button>
-          <button class="ok" id="actionB">Release</button>
-          <button class="warn" id="actionC">Align</button>
-          <button class="bad" id="undoBtn">Undo</button>
+      <div class="bar">
+        <nav class="tabs" role="tablist" aria-label="Modes">
+          <button class="tab" role="tab" id="tab-scen" aria-selected="true" onclick="switchMode('scenarios')">Scenario Mode</button>
+          <button class="tab" role="tab" id="tab-match" aria-selected="false" onclick="switchMode('match')">Quick Match</button>
+          <button class="tab" role="tab" id="tab-flash" aria-selected="false" onclick="switchMode('flash')">Flashcards</button>
+        </nav>
+        <div class="score" id="scorebar">
+          <div class="pill" id="pScore">Score: 0</div>
+          <div class="pill" id="pStreak">Streak: 0</div>
+          <div class="pill" id="pBest">Best: 0</div>
         </div>
-        <div class="panel">
-          <div class="box">
-            <h3 id="levelName">Level 1 · Dice & Matches</h3>
-            <div class="meter ok" title="Order">
-              <span id="orderBar"></span>
-            </div>
-            <p class="note" id="brief">Arrange items into a neat pattern using the three actions.</p>
-            <div class="sim" id="sim"></div>
-          </div>
-          <div class="box">
-            <h3>Status</h3>
-            <p class="note"><strong>Order score:</strong> <span id="orderScore">0.00</span></p>
-            <p class="note"><strong>Moves:</strong> <span id="moves">0</span></p>
-            <div class="toolbar">
-              <button class="ok" id="checkBtn">Check Win</button>
-              <button class="ghost" id="nextBtn">Next ▶</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Notes</h3>
-        <p class="note" id="note">Use <em>Drive</em> to jostle pieces, <em>Release</em> to settle them, and <em>Align</em> for final arrangement.</p>
       </div>
     </div>
-  </div>
+  </header>
 
-  <div class="toast" id="toast"></div>
+  <main class="main">
+    <section class="left">
+      <div class="panel-title">
+        <h2>Controls</h2>
+        <div>
+          <button class="btn secondary" onclick="resetProgress()" title="Reset local progress">Reset</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="mode-card">
+          <h3>Scenario Mode</h3>
+          <p>Answer rich, case‑based items (e.g., asthma, shock, glaucoma). Choose the receptor action that best treats the situation and learn from concise explanations.</p>
+        </div>
+        <div class="mode-card">
+          <h3>Quick Match</h3>
+          <p>Pick the correct receptor–organ effect pairs under light time pressure. Great for reinforcing basics (α1, α2, β1, β2, nicotinic, muscarinic).</p>
+        </div>
+        <div class="mode-card">
+          <h3>Flashcards</h3>
+          <p>Swipe through compact cards (keyboard: <span class="kbd">←</span> don’t know, <span class="kbd">→</span> know). Build long‑term memory efficiently.</p>
+        </div>
+        <hr style="border-color: rgba(255,255,255,0.06); margin:12px 0"/>
+        <div class="mode-card">
+          <h3>Export & Teacher Mode</h3>
+          <p>Click <em>Export CSV</em> to download your session log for grading or analytics. Results are stored locally in your browser only.</p>
+          <div>
+            <button class="btn" onclick="exportCSV()">Export CSV</button>
+          </div>
+        </div>
+        <div class="about" style="margin-top:12px">
+          <details>
+            <summary>How to play</summary>
+            <p><strong>Scenario Mode:</strong> Read the prompt carefully. Click the best receptor action (e.g., <em>β<sub>2</sub> agonist</em> for acute bronchospasm). Immediate feedback explains the physiology.</p>
+            <p><strong>Quick Match:</strong> A target organ/effect is shown — select the receptor action that would cause that effect.</p>
+            <p><strong>Flashcards:</strong> Use arrow keys to mark whether you knew the card. Cards you miss are recycled more often.</p>
+          </details>
+          <details style="margin-top:8px">
+            <summary>About & references</summary>
+            <p>This educational game covers key learning objectives from introductory lectures on the Autonomic Nervous System (ANS): neurotransmitters, receptor classes (nicotinic, muscarinic, α/β subtypes), and organ‑level responses. Sources summarized include standard physiology and pharmacology texts and open educational resources listed on the project page.</p>
+            <ul>
+              <li>OpenStax Anatomy & Physiology — Autonomic Nervous System (free OER)</li>
+              <li>StatPearls (NCBI Bookshelf) — Autonomic & receptor overviews</li>
+              <li>LibreTexts — Endocrine physiology of adrenal medulla</li>
+            </ul>
+            <p>Disclaimers: for learning only; not medical advice.</p>
+          </details>
+        </div>
+      </div>
+    </section>
 
-  <script>
-    // -----------------------
-    // Levels (no thermodynamics terminology)
-    // -----------------------
-    const levels = [
-      { name:'Level 1 · Dice & Matches', brief:'Create two neat rows (dice then matches).', startOrder:0.25, target:0.70 },
-      { name:'Level 2 · Rubber Band', brief:'Line up chips along a smooth path.', startOrder:0.30, target:0.75 },
-      { name:'Level 3 · Drug–Protein', brief:'Funnel chips into a pocket region.', startOrder:0.28, target:0.72 },
-      { name:'Level 4 · Forging', brief:'Organize squares into tidy bands.', startOrder:0.26, target:0.70 },
-      { name:'Level 5 · Folding', brief:'Collapse points toward a compact core.', startOrder:0.27, target:0.78 }
-    ];
+    <section class="right" id="stage">
+      <!-- Game view injected here -->
+    </section>
+  </main>
 
-    // -----------------------
-    // Minimal, safe state (history snapshots exclude history itself)
-    // -----------------------
-    let state = {
-      level: 0,
-      order: 0,
-      moves: 0,
-      history: [] // array of snapshots {level, order, moves}
-    };
+  <div class="footer">© 2025 Autonomic Arcade — Single‑file build for GitHub Pages • MIT License</div>
 
-    function snapshot(){ return { level: state.level, order: state.order, moves: state.moves }; }
-    function pushHistory(){ state.history.push(snapshot()); if(state.history.length>40) state.history.shift(); }
-    function popHistory(){ if(!state.history.length) return; const s = state.history.pop(); state.level=s.level; state.order=s.order; state.moves=s.moves; updateUI(true); drawSim(); }
+<script>
+  // ==============================
+  // Data model — expert‑vetted facts (introductory ANS level)
+  // ==============================
 
-    const el = id=> document.getElementById(id);
-    const sim = el('sim');
-    function toast(msg){ const t=el('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
-    function save(){ localStorage.setItem('orderQuest', JSON.stringify({level:state.level})); }
-    function load(){ try{ const s=JSON.parse(localStorage.getItem('orderQuest')||'null'); if(s && Number.isInteger(s.level)) state.level = Math.max(0, Math.min(levels.length-1, s.level)); }catch(e){} }
+  const ORG = {
+    HEART: {id:'HEART', name:'Heart', glyph:'❤', color:'#ef4444'},
+    BRONCHI: {id:'BRONCHI', name:'Bronchi', glyph:'🫁', color:'#22c55e'},
+    PUPIL: {id:'PUPIL', name:'Pupil', glyph:'👁️', color:'#38bdf8'},
+    VESSELS: {id:'VESSELS', name:'Arterioles/Veins', glyph:'🩸', color:'#f59e0b'},
+    GI: {id:'GI', name:'GI Sphincters', glyph:'🍽️', color:'#eab308'},
+    GLANDS: {id:'GLANDS', name:'Sweat glands', glyph:'💧', color:'#60a5fa'},
+    LIVER: {id:'LIVER', name:'Liver', glyph:'🧪', color:'#a78bfa'},
+  };
 
-    function setLevel(i){
-      state.level = i; const L = levels[i]; state.order = L.startOrder; state.moves = 0; state.history = [];
-      el('levelName').textContent = L.name; el('brief').textContent=L.brief; el('note').textContent = 'Goal: raise the order bar to reach the target.';
-      updateUI(true); drawSim(); el('progressPill').textContent = `Progress: ${i}/${levels.length}`; save();
-    }
+  // Receptor actions as menu items
+  const ACTIONS = [
+    { key:'b1_ag', label:'β₁ agonist', desc:'↑ HR, ↑ force (heart)' },
+    { key:'b1_ant', label:'β₁ antagonist', desc:'↓ HR, ↓ force' },
+    { key:'b2_ag', label:'β₂ agonist', desc:'Bronchodilation; some vascular dilation' },
+    { key:'b2_ant', label:'β₂ antagonist', desc:'Bronchoconstriction' },
+    { key:'a1_ag', label:'α₁ agonist', desc:'Vasoconstriction; mydriasis; sphincter contraction' },
+    { key:'a1_ant', label:'α₁ antagonist', desc:'Vasodilation; miosis tendency' },
+    { key:'a2_ag', label:'α₂ agonist', desc:'↓ NE release (presynaptic modulation)' },
+    { key:'m_ag', label:'Muscarinic agonist', desc:'Parasympathetic effector activation' },
+    { key:'m_ant', label:'Muscarinic antagonist', desc:'Blocks PSNS at effector' },
+    { key:'n_ag', label:'Nicotinic agonist', desc:'Ganglionic/somatic excitation' },
+    { key:'n_ant', label:'Nicotinic antagonist', desc:'Blocks ganglia or NMJ' },
+  ];
 
-    function updateUI(instant){ const bar = el('orderBar'); bar.style.transition = instant? 'width 0s':'width .4s'; bar.style.width = `${Math.max(0, Math.min(1, state.order))*100}%`; el('orderScore').textContent = state.order.toFixed(2); el('moves').textContent = state.moves; }
+  // Canonical effects (simplified for intro level)
+  const EFFECTS = {
+    HEART: { go:'b1_ag', stop:'m_ag' },
+    BRONCHI: { open:'b2_ag', close:'m_ag' },
+    PUPIL: { dilate:'a1_ag', constrict:'m_ag' },
+    VESSELS: { constrict:'a1_ag', dilate:'b2_ag' },
+    GI: { tighten:'a1_ag', relax_move:'m_ag' },
+    GLANDS: { sweat:"m_ag_symp" }, // sympathetic cholinergic special case
+    LIVER: { glycogenolysis:'a1_ag' },
+  };
 
-    function checkWin(){ const L = levels[state.level]; if(state.order >= L.target){ toast('Nice! Pattern achieved.'); const next = (state.level+1)%levels.length; el('progressPill').textContent = `Progress: ${state.level+1}/${levels.length}`; } else { toast(`Keep going. Target order ≥ ${L.target.toFixed(2)}.`); } }
+  // Scenario bank — each item: prompt, organ, good options, bad distractors, explanation
+  const SCENARIOS = [
+    { organ: ORG.BRONCHI, prompt: 'Acute asthma attack with wheeze and dyspnea. Which receptor action best relieves the airway obstruction?', answers: ['b2_ag'], wrong: ['m_ag','a1_ag','b1_ag'], explain: 'β₂ receptor activation on bronchial smooth muscle causes relaxation and bronchodilation; first‑line in acute bronchospasm.' },
+    { organ: ORG.HEART, prompt: 'Cardiogenic shock with low cardiac output needs immediate inotropic support. What receptor action raises heart rate and contractility?', answers: ['b1_ag'], wrong:['a1_ag','m_ag','a2_ag'], explain: 'β₁ stimulation increases HR and contractile force, improving cardiac output.' },
+    { organ: ORG.VESSELS, prompt: 'Severe nasal congestion; select the receptor action used by most topical decongestants to shrink mucosal vessels.', answers:['a1_ag'], wrong:['b2_ag','m_ag','b1_ant'], explain:'α₁ agonism produces vasoconstriction of arterioles and venous capacitance vessels, reducing edema.' },
+    { organ: ORG.PUPIL, prompt: 'Pre‑op eye exam requires mydriasis without cycloplegia. Which receptor action achieves dilation?', answers:['a1_ag'], wrong:['m_ag','b2_ag','a1_ant'], explain:'Iris radial muscle has α₁ receptors; activation widens the pupil.' },
+    { organ: ORG.PUPIL, prompt: 'Angle‑closure glaucoma is worsened by which action?', answers:['m_ant'], wrong:['a1_ant','b2_ag','a2_ag'], explain:'Muscarinic antagonism (e.g., atropine) causes mydriasis and can precipitate angle‑closure by narrowing the angle.' },
+    { organ: ORG.BRONCHI, prompt: 'Which action risks bronchospasm in asthmatics?', answers:['b2_ant'], wrong:['b2_ag','a1_ant','m_ant'], explain:'β₂ blockade removes bronchodilation, predisposing to bronchoconstriction.' },
+    { organ: ORG.HEART, prompt: 'Which action slows heart rate and AV conduction?', answers:['m_ag','b1_ant'], wrong:['b1_ag','a1_ag'], explain:'Muscarinic stimulation (M₂) decreases SA/AV node activity; β₁ blockade also slows rate/contractility.' },
+    { organ: ORG.GI, prompt: 'Post‑op ileus needs restored GI motility. Which action helps?', answers:['m_ag'], wrong:['a1_ag','b1_ag','b2_ant'], explain:'Muscarinic activation increases peristalsis and secretion; α₁ tightens sphincters (opposite of what we want).' },
+    { organ: ORG.VESSELS, prompt: 'Which action causes vasodilation in large skeletal‑muscle arteries?', answers:['b2_ag'], wrong:['a1_ag','m_ag','a1_ant'], explain:'β₂ stimulation relaxes vascular smooth muscle in some beds (e.g., skeletal muscle), increasing flow.' },
+    { organ: ORG.GLANDS, prompt: 'High‑temperature exercise — sweating increases via which pathway?', answers:['m_ag_symp'], wrong:['b2_ag','a1_ag','n_ag'], explain:'Eccrine sweat glands are innervated by sympathetic cholinergic fibers acting on muscarinic receptors (classic exception).' },
+    { organ: ORG.LIVER, prompt: 'Which action supports acute “fight/flight” by raising plasma glucose (glycogenolysis)?', answers:['a1_ag','b2_ag'], wrong:['m_ag','b1_ant'], explain:'Catecholamines acting at α₁/β₂ promote hepatic glycogenolysis and gluconeogenesis.' },
+    { organ: ORG.HEART, prompt: 'Which presynaptic action reduces norepinephrine release from sympathetic terminals?', answers:['a2_ag'], wrong:['a1_ag','b1_ag','m_ant'], explain:'α₂ autoreceptor agonism inhibits NE release (negative feedback).' },
+    { organ: ORG.BRONCHI, prompt: 'Which antagonist would worsen COPD symptoms by blocking bronchodilation?', answers:['b2_ant'], wrong:['m_ant','a1_ant','a2_ag'], explain:'β₂ antagonists block bronchodilation; antimuscarinics often help COPD (they reduce vagal tone).' },
+    { organ: ORG.PUPIL, prompt: 'Which action causes miosis (pupil constriction)?', answers:['m_ag'], wrong:['a1_ag','b2_ag','m_ant'], explain:'Muscarinic stimulation of iris sphincter contracts it → miosis.' },
+    { organ: ORG.GI, prompt: 'Which action increases tone of GI sphincters?', answers:['a1_ag'], wrong:['m_ag','b2_ag','b1_ant'], explain:'α₁ agonism increases sphincter contraction.' },
+    { organ: ORG.HEART, prompt: 'Which antagonist class reduces myocardial oxygen demand and is used in angina?', answers:['b1_ant'], wrong:['a1_ant','m_ag','b2_ag'], explain:'β₁ blockade lowers HR/contractility, reducing O₂ demand.' },
+    { organ: ORG.GLANDS, prompt: 'Which action would <em>decrease</em> sweating?', answers:['m_ant'], wrong:['m_ag_symp','a1_ag','b2_ag'], explain:'Blocking muscarinic receptors reduces eccrine sweating (even though the pathway is sympathetic).'},
+    { organ: ORG.BRONCHI, prompt: 'Which receptor action indirectly increases NE release (risk of sympathetic overactivity)?', answers:['a2_ant'], wrong:['a2_ag','b1_ant','m_ag'], explain:'α₂ antagonism removes presynaptic brake, increasing NE release.' },
+  ];
 
-    function nextLevel(){ const n=(state.level+1)%levels.length; setLevel(n); toast('Next level'); }
+  // Augment with derived distractor for α2_ant label
+  ACTIONS.push({ key:'a2_ant', label:'α₂ antagonist', desc:'↑ NE release (presynaptic)' });
 
-    // Action effects (simple tuning): increase order by different amounts
-    const ACTIONS = {
-      A: ()=> { pushHistory(); state.order = clamp01(state.order + 0.08); state.moves++; updateUI(); drawSim(); toast('Drive'); },
-      B: ()=> { pushHistory(); state.order = clamp01(state.order + 0.10); state.moves++; updateUI(); drawSim(); toast('Release'); },
-      C: ()=> { pushHistory(); state.order = clamp01(state.order + 0.16); state.moves++; updateUI(); drawSim(); toast('Align'); }
-    };
+  // Flashcards content
+  const FLASH = [
+    {front:'Preganglionic ANS neurotransmitter?', back:'Acetylcholine to nicotinic receptors (both SNS & PSNS ganglia).'},
+    {front:'Primary transmitter of most sympathetic postganglions?', back:'Norepinephrine (adrenergic). Exception: sweat glands are sympathetic cholinergic.'},
+    {front:'Adrenal medulla secretion ratio?', back:'~80% epinephrine, ~20% norepinephrine (systemic release).'},
+    {front:'β₁ receptor main effect (heart)?', back:'↑ HR and ↑ contractility.'},
+    {front:'β₂ receptor on bronchi?', back:'Bronchodilation.'},
+    {front:'α₁ receptor on arterioles?', back:'Vasoconstriction.'},
+    {front:'α₂ receptor presynaptic role?', back:'↓ NE release (autoreceptor).'},
+    {front:'Muscarinic on eye (sphincter)?', back:'Miosis (constriction).'},
+    {front:'Muscarinic on heart (M₂)?', back:'↓ HR, ↓ AV conduction.'},
+  ];
 
-    function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+  // ==============================
+  // State & persistence
+  // ==============================
+  const state = {
+    mode:'scenarios',
+    index:0,
+    score: 0,
+    streak: 0,
+    best: Number(localStorage.getItem('aa_best')||0),
+    log: [],
+    flashIndex: 0,
+  };
 
-    function drawSim(){
-      sim.innerHTML='';
-      const L = levels[state.level];
-      const w = sim.clientWidth || sim.offsetWidth || 600; // robust width
-      const h = sim.clientHeight || 230;
-      const t = state.order; // 0..1 orderedness
+  function persist(){ localStorage.setItem('aa_best', state.best) }
 
-      if(state.level===0){
-        const N=12; for(let i=0;i<N;i++){ const d=document.createElement('div'); if(i<6){ d.className='die'; d.textContent=(i%6)+1; const baseY=30; const y= baseY + (1-t)*30*(Math.random()-0.5); const x= 10 + i*((w-40)/N) + (1-t)*30*(Math.random()-0.5); d.style.left=x+'px'; d.style.top=y+'px'; } else { d.className='match'; const baseY=140; const y= baseY + (1-t)*36*(Math.random()-0.5); const x= 10 + i*((w-40)/N) + (1-t)*36*(Math.random()-0.5); d.style.left=x+'px'; d.style.top=y+'px'; } sim.appendChild(d);} }
-      else if(state.level===1){
-        const N=26; for(let i=0;i<N;i++){ const c=document.createElement('div'); c.className='chip'; const x= 20 + i*((w-40)/N); const y= h/2 + Math.sin(i/2)*(18*(1-t)); c.style.left=(x + (1-t)*20*(Math.random()-0.5))+'px'; c.style.top=(y + (1-t)*20*(Math.random()-0.5))+'px'; sim.appendChild(c);} }
-      else if(state.level===2){
-        const N=34; const px=w*0.75, py=h*0.5; for(let i=0;i<N;i++){ const c=document.createElement('div'); c.className='chip'; const ang=Math.random()*2*Math.PI; const R = 80*(1-t)+20; const r=Math.random()*R; c.style.left=(px+Math.cos(ang)*r)+'px'; c.style.top=(py+Math.sin(ang)*r)+'px'; sim.appendChild(c);} }
-      else if(state.level===3){
-        const cols=10, rows=6; for(let r=0;r<rows;r++){ for(let c=0;c<cols;c++){ const d=document.createElement('div'); d.className='die'; d.textContent=''; const x= 20 + c*((w-40)/cols); const y= 20 + r*((h-40)/rows); const j=(1-t)*24; d.style.left=(x + (Math.random()-0.5)*j)+'px'; d.style.top=(y + (Math.random()-0.5)*j)+'px'; sim.appendChild(d);} } }
-      else if(state.level===4){
-        const N=42; const cx=w/2, cy=h/2; for(let i=0;i<N;i++){ const c=document.createElement('div'); c.className='chip'; const ang=Math.random()*2*Math.PI; const R= 90*(1-t)+20; const r=Math.random()*R; c.style.left=(cx+Math.cos(ang)*r)+'px'; c.style.top=(cy+Math.sin(ang)*r)+'px'; sim.appendChild(c);} }
-    }
+  // ==============================
+  // UI helpers
+  // ==============================
+  const stage = document.getElementById('stage');
 
-    // Events
-    el('actionA').addEventListener('click', ACTIONS.A);
-    el('actionB').addEventListener('click', ACTIONS.B);
-    el('actionC').addEventListener('click', ACTIONS.C);
-    el('undoBtn').addEventListener('click', popHistory);
-    el('checkBtn').addEventListener('click', checkWin);
-    el('nextBtn').addEventListener('click', nextLevel);
-    el('resetBtn').addEventListener('click', ()=>{ if(confirm('Reset progress?')){ localStorage.removeItem('orderQuest'); load(); setLevel(0); toast('Progress reset.'); } });
-    el('helpBtn').addEventListener('click', ()=>{
-      alert('Goal: Raise the Order bar to reach the target.
+  function el(html){
+    const t = document.createElement('template'); t.innerHTML = html.trim();
+    return t.content.firstElementChild;
+  }
 
-Actions:
-• Drive — jostle pieces.
-• Release — let them settle.
-• Align — snap toward pattern.
+  function setScore(){
+    document.getElementById('pScore').textContent = `Score: ${state.score}`;
+    document.getElementById('pStreak').textContent = `Streak: ${state.streak}`;
+    document.getElementById('pBest').textContent = `Best: ${state.best}`;
+  }
 
-Win: When the Order score reaches the target for the level.');
+  function switchMode(m){
+    state.mode = m; state.index = 0; state.flashIndex = 0;
+    document.getElementById('tab-scen').setAttribute('aria-selected', m==='scenarios');
+    document.getElementById('tab-match').setAttribute('aria-selected', m==='match');
+    document.getElementById('tab-flash').setAttribute('aria-selected', m==='flash');
+    render();
+  }
+
+  function resetProgress(){
+    if(confirm('Reset score and streak?')){ state.score=0; state.streak=0; setScore(); }
+  }
+
+  // ==============================
+  // Rendering
+  // ==============================
+  function render(){
+    if(state.mode==='scenarios') return renderScenario();
+    if(state.mode==='match') return renderMatch();
+    if(state.mode==='flash') return renderFlash();
+  }
+
+  function renderShell(title){
+    stage.innerHTML = '';
+    const shell = el(`<div>
+      <div class="panel-title"><h2>${title}</h2>
+        <div style="display:flex; gap:8px">
+          <button class="btn secondary" onclick="render()">New Round</button>
+        </div>
+      </div>
+      <div class="question" id="q"></div>
+      <div class="feedback" id="fb"></div>
+    </div>`);
+    stage.appendChild(shell);
+    return { q: shell.querySelector('#q'), fb: shell.querySelector('#fb') };
+  }
+
+  // Scenario Mode
+  function renderScenario(){
+    const { q, fb } = renderShell('Scenario Mode');
+    const item = SCENARIOS[state.index % SCENARIOS.length];
+
+    const organ = el(`<div class="organ" aria-label="Organ">
+      <div class="glyph" style="background:linear-gradient(135deg,#0ea5e9, ${item.organ.color})">${item.organ.glyph}</div>
+      <div>
+        <div style="font-weight:700">Target: ${item.organ.name}</div>
+        <div class="sub">Pick the best receptor action</div>
+      </div>
+    </div>`);
+
+    const prompt = el(`<p class="prompt">${item.prompt}</p>`);
+
+    const opts = shuffle([...item.answers, ...item.wrong]).map(k => ACTIONS.find(a=>a.key===k));
+    const options = el(`<div class="options"></div>`);
+    opts.forEach(o=>{
+      const card = el(`<div class="option" role="button" tabindex="0" aria-label="${o.label}"><strong>${o.label}</strong><span>${o.desc}</span></div>`);
+      card.addEventListener('click', ()=> selectOption(o.key, item, fb));
+      card.addEventListener('keyup', (e)=>{ if(e.key==='Enter' || e.key===' ') selectOption(o.key,item,fb)});
+      options.appendChild(card);
     });
 
-    window.addEventListener('resize', drawSim);
+    q.appendChild(prompt); q.appendChild(organ); q.appendChild(options);
+  }
 
-    // Init
-    function init(){ load(); setLevel(state.level); }
-    init();
-  </script>
+  function selectOption(key, item, fb){
+    const correct = item.answers.includes(key);
+    const time = new Date().toISOString();
+    state.log.push({mode:'scenario', time, prompt:item.prompt, pick:key, correct});
+
+    if(correct){ state.score+=10; state.streak++; if(state.score>state.best){ state.best=state.score; persist(); } }
+    else { state.streak=0; state.score = Math.max(0, state.score-2); }
+    setScore();
+
+    fb.classList.add('show');
+    fb.innerHTML = `<div style="display:flex; align-items:flex-start; gap:12px">
+      <div style="width:12px; height:12px; border-radius:50%; margin-top:6px; background:${correct ? 'var(--good)':'var(--bad)'}"></div>
+      <div>
+        <div style="font-weight:700; margin-bottom:6px">${correct? 'Correct!':'Not quite.'}</div>
+        <div>${item.explain}</div>
+        <div style="margin-top:10px; display:flex; gap:8px">
+          <button class="btn" onclick="nextScenario()">Next</button>
+          <button class="btn secondary" onclick="renderScenario()">Retry</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function nextScenario(){ state.index = (state.index+1)%SCENARIOS.length; renderScenario(); }
+
+  // Quick Match — show organ/effect, pick receptor action
+  function renderMatch(){
+    const { q, fb } = renderShell('Quick Match');
+    // Build a random target from EFFECTS
+    const bank = [];
+    bank.push({ organ: ORG.VESSELS, text:'Cause vasoconstriction of arterioles', expect:'a1_ag' });
+    bank.push({ organ: ORG.VESSELS, text:'Cause vasodilation in skeletal muscle arteries', expect:'b2_ag' });
+    bank.push({ organ: ORG.HEART, text:'Increase heart rate and contractility', expect:'b1_ag' });
+    bank.push({ organ: ORG.HEART, text:'Slow heart rate (SA/AV)', expect:'m_ag' });
+    bank.push({ organ: ORG.BRONCHI, text:'Relax bronchial smooth muscle', expect:'b2_ag' });
+    bank.push({ organ: ORG.PUPIL, text:'Dilate the pupil (mydriasis)', expect:'a1_ag' });
+    bank.push({ organ: ORG.PUPIL, text:'Constrict the pupil (miosis)', expect:'m_ag' });
+    bank.push({ organ: ORG.GI, text:'Tighten GI sphincters', expect:'a1_ag' });
+    bank.push({ organ: ORG.GI, text:'Promote peristalsis and secretion', expect:'m_ag' });
+    bank.push({ organ: ORG.GLANDS, text:'Increase sweating (thermoregulatory)', expect:'m_ag_symp' });
+
+    const item = bank[Math.floor(Math.random()*bank.length)];
+
+    const organ = el(`<div class="organ" aria-label="Organ">
+      <div class="glyph" style="background:linear-gradient(135deg,#0ea5e9, ${item.organ.color})">${item.organ.glyph}</div>
+      <div>
+        <div style="font-weight:700">Target: ${item.organ.name}</div>
+        <div class="sub">Pick the receptor action that would: <em>${item.text}</em></div>
+      </div>
+    </div>`);
+
+    const options = el(`<div class="options"></div>`);
+    const choices = shuffle(ACTIONS.map(a=>a.key)).slice(0,5);
+    if(!choices.includes(item.expect)) choices[Math.floor(Math.random()*choices.length)] = item.expect;
+    choices.map(k => ACTIONS.find(a=>a.key===k)).forEach(o=>{
+      const card = el(`<div class="option" role="button"><strong>${o.label}</strong><span>${o.desc}</span></div>`);
+      card.addEventListener('click', ()=>{
+        const correct = (o.key===item.expect);
+        state.log.push({mode:'match', time:new Date().toISOString(), target:item.text, pick:o.key, correct});
+        if(correct){ state.score+=5; state.streak++; if(state.score>state.best){ state.best=state.score; persist(); } }
+        else { state.streak=0; state.score=Math.max(0, state.score-1); }
+        setScore();
+        fb.classList.add('show');
+        fb.innerHTML = `<div><strong>${correct?'Correct!':'Not quite.'}</strong> ${correct? 'Good physiology.': 'Review receptor–organ mapping.'}
+        <div style="margin-top:10px"><button class="btn" onclick="renderMatch()">Next</button></div></div>`;
+      });
+      options.appendChild(card);
+    });
+
+    q.appendChild(organ); q.appendChild(options);
+  }
+
+  // Flashcards
+  function renderFlash(){
+    stage.innerHTML='';
+    const wrap = el(`<div>
+      <div class="panel-title"><h2>Flashcards</h2>
+        <div style="display:flex; gap:8px"><button class="btn secondary" onclick="renderFlash()">Shuffle</button></div>
+      </div>
+      <div class="question" id="fc"></div>
+    </div>`);
+    stage.appendChild(wrap);
+
+    function show(){
+      const card = FLASH[state.flashIndex % FLASH.length];
+      const box = el(`<div class="mode-card" style="text-align:center; padding:24px">
+        <div style="font-size:14px; color:var(--ink-dim); margin-bottom:8px">Card ${state.flashIndex+1} / ${FLASH.length}</div>
+        <div style="font-size: clamp(18px,2.5vw,28px); font-weight:800">${card.front}</div>
+        <div id="back" style="display:none; margin-top:12px; font-size: clamp(16px,2vw,20px)">${card.back}</div>
+        <div style="margin-top:14px; display:flex; justify-content:center; gap:8px">
+          <button class="btn" onclick="this.parentElement.previousElementSibling.style.display='block'">Show</button>
+          <button class="btn secondary" onclick="prevCard()">Prev</button>
+          <button class="btn" onclick="nextCard()">Next</button>
+        </div>
+      </div>`);
+      const fc = wrap.querySelector('#fc'); fc.innerHTML=''; fc.appendChild(box);
+    }
+
+    function prevCard(){ state.flashIndex = (state.flashIndex - 1 + FLASH.length) % FLASH.length; show(); }
+    window.prevCard = prevCard;
+    window.nextCard = function(){ state.flashIndex = (state.flashIndex + 1) % FLASH.length; show(); };
+
+    // Arrow keys
+    window.onkeyup = (e)=>{
+      if(state.mode!== 'flash') return;
+      if(e.key==='ArrowRight') window.nextCard();
+      if(e.key==='ArrowLeft') prevCard();
+    };
+
+    show();
+  }
+
+  // Utilities
+  function shuffle(arr){
+    const a = arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()* (i+1)); [a[i],a[j]]=[a[j],a[i]] } return a;
+  }
+
+  // Export CSV of session
+  function exportCSV(){
+    const header = 'mode,time,prompt/target,pick,correct\n';
+    const rows = state.log.map(r=>{
+      const p = r.prompt||r.target||''; return [r.mode,r.time,`"${p.replaceAll('"','""')}"`,r.pick,r.correct].join(',');
+    }).join('\n');
+    const blob = new Blob([header+rows], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download='autonomic_arcade_log.csv'; a.click();
+    setTimeout(()=> URL.revokeObjectURL(url), 1000);
+  }
+
+  // Initialize
+  setScore();
+  render();
+</script>
 </body>
 </html>
