@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Order Quest — From Chaos to Pattern</title>
+  <!--
+    Order Quest — Clean version with NO thermodynamics terms.
+    • Removed all mentions of entropy, ΔH, ΔG, etc.
+    • Fixed a freeze bug caused by storing the entire state (including history) in history snapshots.
+    • Simplified HUD to "Order" and "Progress" only.
+
+    How to deploy (GitHub Pages):
+    1) Save this file as index.html in a public repo.
+    2) Settings → Pages → Deploy from a branch → main → /(root) → Save.
+  -->
+  <style>
+    :root{
+      --bg:#0b1020;--panel:#121a33;--panel2:#0f1730;--ink:#e7ecff;--muted:#aeb8d6;--accent:#6ea8ff;--ok:#3fd691;--shadow:0 10px 30px rgba(0,0,0,.35);--r:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    a{color:var(--accent)}
+    .wrap{max-width:1100px;margin:0 auto;padding:22px}
+    header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#7aa0ff,#3f66ff);box-shadow:var(--shadow)}
+    h1{margin:0;font-size:1.25rem;font-weight:800}
+    .pill{padding:6px 10px;border-radius:999px;background:#131d3b;color:var(--muted);font-weight:700;font-size:.82rem}
+    .card{background:linear-gradient(180deg,var(--panel),var(--panel2));padding:16px;border-radius:var(--r);box-shadow:var(--shadow);margin:10px 0}
+    .grid{display:grid;gap:14px}
+    @media(min-width:940px){.grid{grid-template-columns:1.2fr .8fr}}
+    .toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+    button{appearance:none;border:none;padding:10px 14px;border-radius:14px;cursor:pointer;font-weight:800;background:#162455;color:var(--ink);box-shadow:var(--shadow);transition:.18s}
+    button:hover{transform:translateY(-1px)}
+    .primary{background:linear-gradient(135deg,#5a86ff,#3d63ff)}
+    .ghost{background:#0f1a3d}
+    .ok{background:linear-gradient(135deg,#2fd28e,#1caf73)}
+    .warn{background:linear-gradient(135deg,#ffd36e,#ffb347);color:#1b1e28}
+    .bad{background:linear-gradient(135deg,#ff7a7a,#ff5f5f)}
+    .row{display:flex;gap:12px;align-items:center}
+    .note{color:var(--muted)}
+    .meter{height:12px;background:#0b1330;border-radius:999px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+    .meter>span{display:block;height:100%;background:linear-gradient(90deg,#6ea8ff,#9dd0ff);width:0;transition:width .4s}
+    .meter.ok>span{background:linear-gradient(90deg,#2fd28e,#93f0c8)}
+    .panel{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .box{background:#0e1733;border-radius:16px;padding:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+    .box h3{margin:0 0 8px;font-size:1rem}
+
+    .sim{height:230px;background:#0b1330;border-radius:14px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+    .chip{position:absolute;width:16px;height:16px;border-radius:4px;background:#6ea8ff;box-shadow:0 4px 10px rgba(0,0,0,.35)}
+    .match{position:absolute;width:4px;height:36px;border-radius:3px;background:#ffbb66;box-shadow:0 4px 10px rgba(0,0,0,.35)}
+    .die{position:absolute;width:20px;height:20px;border-radius:6px;background:#f7f7ff;box-shadow:0 4px 10px rgba(0,0,0,.3);display:grid;place-items:center;font-size:.7rem;color:#111}
+
+    .toast{position:fixed;right:16px;bottom:16px;background:#0d1533;border:1px solid rgba(255,255,255,.1);padding:12px 14px;border-radius:12px;box-shadow:var(--shadow);display:none}
+    .show{display:block;animation:pop .5s ease}
+    @keyframes pop{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>Order Quest — From Chaos to Pattern</h1>
+          <div class="note">Create ordered patterns across five analogies. No physics jargon — just clear goals and crisp visuals.</div>
+        </div>
+      </div>
+      <div class="row">
+        <span class="pill" id="progressPill">Progress: 0/5</span>
+        <button class="ghost" id="resetBtn">Reset</button>
+        <button class="primary" id="helpBtn">How to Play</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <div class="toolbar">
+          <button class="primary" id="actionA">Drive</button>
+          <button class="ok" id="actionB">Release</button>
+          <button class="warn" id="actionC">Align</button>
+          <button class="bad" id="undoBtn">Undo</button>
+        </div>
+        <div class="panel">
+          <div class="box">
+            <h3 id="levelName">Level 1 · Dice & Matches</h3>
+            <div class="meter ok" title="Order">
+              <span id="orderBar"></span>
+            </div>
+            <p class="note" id="brief">Arrange items into a neat pattern using the three actions.</p>
+            <div class="sim" id="sim"></div>
+          </div>
+          <div class="box">
+            <h3>Status</h3>
+            <p class="note"><strong>Order score:</strong> <span id="orderScore">0.00</span></p>
+            <p class="note"><strong>Moves:</strong> <span id="moves">0</span></p>
+            <div class="toolbar">
+              <button class="ok" id="checkBtn">Check Win</button>
+              <button class="ghost" id="nextBtn">Next ▶</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Notes</h3>
+        <p class="note" id="note">Use <em>Drive</em> to jostle pieces, <em>Release</em> to settle them, and <em>Align</em> for final arrangement.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // -----------------------
+    // Levels (no thermodynamics terminology)
+    // -----------------------
+    const levels = [
+      { name:'Level 1 · Dice & Matches', brief:'Create two neat rows (dice then matches).', startOrder:0.25, target:0.70 },
+      { name:'Level 2 · Rubber Band', brief:'Line up chips along a smooth path.', startOrder:0.30, target:0.75 },
+      { name:'Level 3 · Drug–Protein', brief:'Funnel chips into a pocket region.', startOrder:0.28, target:0.72 },
+      { name:'Level 4 · Forging', brief:'Organize squares into tidy bands.', startOrder:0.26, target:0.70 },
+      { name:'Level 5 · Folding', brief:'Collapse points toward a compact core.', startOrder:0.27, target:0.78 }
+    ];
+
+    // -----------------------
+    // Minimal, safe state (history snapshots exclude history itself)
+    // -----------------------
+    let state = {
+      level: 0,
+      order: 0,
+      moves: 0,
+      history: [] // array of snapshots {level, order, moves}
+    };
+
+    function snapshot(){ return { level: state.level, order: state.order, moves: state.moves }; }
+    function pushHistory(){ state.history.push(snapshot()); if(state.history.length>40) state.history.shift(); }
+    function popHistory(){ if(!state.history.length) return; const s = state.history.pop(); state.level=s.level; state.order=s.order; state.moves=s.moves; updateUI(true); drawSim(); }
+
+    const el = id=> document.getElementById(id);
+    const sim = el('sim');
+    function toast(msg){ const t=el('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
+    function save(){ localStorage.setItem('orderQuest', JSON.stringify({level:state.level})); }
+    function load(){ try{ const s=JSON.parse(localStorage.getItem('orderQuest')||'null'); if(s && Number.isInteger(s.level)) state.level = Math.max(0, Math.min(levels.length-1, s.level)); }catch(e){} }
+
+    function setLevel(i){
+      state.level = i; const L = levels[i]; state.order = L.startOrder; state.moves = 0; state.history = [];
+      el('levelName').textContent = L.name; el('brief').textContent=L.brief; el('note').textContent = 'Goal: raise the order bar to reach the target.';
+      updateUI(true); drawSim(); el('progressPill').textContent = `Progress: ${i}/${levels.length}`; save();
+    }
+
+    function updateUI(instant){ const bar = el('orderBar'); bar.style.transition = instant? 'width 0s':'width .4s'; bar.style.width = `${Math.max(0, Math.min(1, state.order))*100}%`; el('orderScore').textContent = state.order.toFixed(2); el('moves').textContent = state.moves; }
+
+    function checkWin(){ const L = levels[state.level]; if(state.order >= L.target){ toast('Nice! Pattern achieved.'); const next = (state.level+1)%levels.length; el('progressPill').textContent = `Progress: ${state.level+1}/${levels.length}`; } else { toast(`Keep going. Target order ≥ ${L.target.toFixed(2)}.`); } }
+
+    function nextLevel(){ const n=(state.level+1)%levels.length; setLevel(n); toast('Next level'); }
+
+    // Action effects (simple tuning): increase order by different amounts
+    const ACTIONS = {
+      A: ()=> { pushHistory(); state.order = clamp01(state.order + 0.08); state.moves++; updateUI(); drawSim(); toast('Drive'); },
+      B: ()=> { pushHistory(); state.order = clamp01(state.order + 0.10); state.moves++; updateUI(); drawSim(); toast('Release'); },
+      C: ()=> { pushHistory(); state.order = clamp01(state.order + 0.16); state.moves++; updateUI(); drawSim(); toast('Align'); }
+    };
+
+    function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+    function drawSim(){
+      sim.innerHTML='';
+      const L = levels[state.level];
+      const w = sim.clientWidth || sim.offsetWidth || 600; // robust width
+      const h = sim.clientHeight || 230;
+      const t = state.order; // 0..1 orderedness
+
+      if(state.level===0){
+        const N=12; for(let i=0;i<N;i++){ const d=document.createElement('div'); if(i<6){ d.className='die'; d.textContent=(i%6)+1; const baseY=30; const y= baseY + (1-t)*30*(Math.random()-0.5); const x= 10 + i*((w-40)/N) + (1-t)*30*(Math.random()-0.5); d.style.left=x+'px'; d.style.top=y+'px'; } else { d.className='match'; const baseY=140; const y= baseY + (1-t)*36*(Math.random()-0.5); const x= 10 + i*((w-40)/N) + (1-t)*36*(Math.random()-0.5); d.style.left=x+'px'; d.style.top=y+'px'; } sim.appendChild(d);} }
+      else if(state.level===1){
+        const N=26; for(let i=0;i<N;i++){ const c=document.createElement('div'); c.className='chip'; const x= 20 + i*((w-40)/N); const y= h/2 + Math.sin(i/2)*(18*(1-t)); c.style.left=(x + (1-t)*20*(Math.random()-0.5))+'px'; c.style.top=(y + (1-t)*20*(Math.random()-0.5))+'px'; sim.appendChild(c);} }
+      else if(state.level===2){
+        const N=34; const px=w*0.75, py=h*0.5; for(let i=0;i<N;i++){ const c=document.createElement('div'); c.className='chip'; const ang=Math.random()*2*Math.PI; const R = 80*(1-t)+20; const r=Math.random()*R; c.style.left=(px+Math.cos(ang)*r)+'px'; c.style.top=(py+Math.sin(ang)*r)+'px'; sim.appendChild(c);} }
+      else if(state.level===3){
+        const cols=10, rows=6; for(let r=0;r<rows;r++){ for(let c=0;c<cols;c++){ const d=document.createElement('div'); d.className='die'; d.textContent=''; const x= 20 + c*((w-40)/cols); const y= 20 + r*((h-40)/rows); const j=(1-t)*24; d.style.left=(x + (Math.random()-0.5)*j)+'px'; d.style.top=(y + (Math.random()-0.5)*j)+'px'; sim.appendChild(d);} } }
+      else if(state.level===4){
+        const N=42; const cx=w/2, cy=h/2; for(let i=0;i<N;i++){ const c=document.createElement('div'); c.className='chip'; const ang=Math.random()*2*Math.PI; const R= 90*(1-t)+20; const r=Math.random()*R; c.style.left=(cx+Math.cos(ang)*r)+'px'; c.style.top=(cy+Math.sin(ang)*r)+'px'; sim.appendChild(c);} }
+    }
+
+    // Events
+    el('actionA').addEventListener('click', ACTIONS.A);
+    el('actionB').addEventListener('click', ACTIONS.B);
+    el('actionC').addEventListener('click', ACTIONS.C);
+    el('undoBtn').addEventListener('click', popHistory);
+    el('checkBtn').addEventListener('click', checkWin);
+    el('nextBtn').addEventListener('click', nextLevel);
+    el('resetBtn').addEventListener('click', ()=>{ if(confirm('Reset progress?')){ localStorage.removeItem('orderQuest'); load(); setLevel(0); toast('Progress reset.'); } });
+    el('helpBtn').addEventListener('click', ()=>{
+      alert('Goal: Raise the Order bar to reach the target.
+
+Actions:
+• Drive — jostle pieces.
+• Release — let them settle.
+• Align — snap toward pattern.
+
+Win: When the Order score reaches the target for the level.');
+    });
+
+    window.addEventListener('resize', drawSim);
+
+    // Init
+    function init(){ load(); setLevel(state.level); }
+    init();
+  </script>
+</body>
+</html>
